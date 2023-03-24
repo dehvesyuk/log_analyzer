@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os.path
+
+from helpers import log_reader, parse_filename
 
 
 # log_format ui_short '$remote_addr  $remote_user $http_x_real_ip [$time_local] "$request" '
@@ -15,7 +16,11 @@ config = {
 
 
 def main():
-    pass
+    report_dir = config["REPORT_DIR"]
+    log_dir = config["LOG_DIR"]
+    if not os.path.exists(report_dir):
+        os.makedirs(report_dir)
+    log_file = parse_filename(log_dir)
 
 
 if __name__ == "__main__":
