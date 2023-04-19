@@ -1,16 +1,22 @@
 import gzip
 import os
+import re
 from datetime import datetime
+from typing import Optional
+from collections import namedtuple
 
 LOG_FILENAME_TEMPLATE = "nginx-access-ui.log"
 REPORT_FILENAME_TEMPLATE = "report-"
+REQUEST_TIME_PATTERN = "\d.\d{3}$"
+REQUEST_URL_PATTERN = "\s/\S+\s"
 
 
 def log_reader(filename: str):
     name, ext = os.path.splitext(filename)
     open_method = gzip.open if ext == ".gz" else open
-    with open_method(filename, "rb") as line:
-        yield line.readline()
+    with open_method(filename, "rb") as f:
+        for line in f:
+            yield line.decode("utf-8")
 
 
 def get_last_log_filename(log_dir: str) -> str:
@@ -20,14 +26,26 @@ def get_last_log_filename(log_dir: str) -> str:
     return log_list[0]
 
 
-def get_last_report_filename(report_dir: str) -> str:
+def get_last_report_filename(report_dir: str) -> Optional[str]:
     dir_files = os.listdir(report_dir)
     report_list = [x for x in dir_files if REPORT_FILENAME_TEMPLATE in x]
     report_list.sort(reverse=True)
-    return report_list[0]
+    return report_list[0] if report_list else None
 
 
 def is_log_and_report_date_equal(log: str, report: str) -> bool:
     log_datetime = datetime.strptime(log.split('.')[1], "log-%Y%m%d")
     report_datetime = datetime.strptime(report, "report-%Y.%m.%d.html")
     return log_datetime == report_datetime
+
+
+def get_url_and_time_from_log(line: str) -> tuple:
+    time_tmp = re.search(REQUEST_TIME_PATTERN, line)
+    url_tmp = re.search(REQUEST_URL_PATTERN, line)
+    if time_tmp and url_tmp:
+        time = float(time_tmp.group())
+        url = (url_tmp.group()).strip()
+    else:
+        print(line, "Ошибка данных")
+        url, time = None, None
+    return url, time
