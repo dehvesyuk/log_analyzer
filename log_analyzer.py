@@ -21,7 +21,6 @@ config = {
 
 
 class Report:
-    date = ''
     url = ''
     count = ''
     count_perc = ''
@@ -33,7 +32,11 @@ class Report:
 
 
 def render_report(url: str, time: float):
-    report = Report()
+    report = Report(
+        url=url,
+        count=1,
+
+    )
     return {}
 
 
@@ -48,14 +51,26 @@ def main():
     if is_log_and_report_date_equal(last_log, last_report):
         return
 
-    reports = []
+    data = {}
     full_path = f"{log_dir}/{last_log}"
+    total = 0
     for line in log_reader(full_path):
+        total += 1
         print(line)
         url, time = get_url_and_time_from_log(line)
         print(url, time)
         if url and time:
-            reports.append(render_report(url, time))
+            if url in data.items():
+                data[url]["time"].append(time)
+                data[url]["count"] += 1
+            else:
+                data[url] = {}
+                data[url]["count"] = 1
+                data[url]["time"] = [time]
+    print(data)
+    for item in data.items():
+        if item[1]["count"] > 1:
+            print(item)
 
 
 if __name__ == "__main__":

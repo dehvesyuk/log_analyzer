@@ -34,6 +34,8 @@ def get_last_report_filename(report_dir: str) -> Optional[str]:
 
 
 def is_log_and_report_date_equal(log: str, report: str) -> bool:
+    if not report:
+        return False
     log_datetime = datetime.strptime(log.split('.')[1], "log-%Y%m%d")
     report_datetime = datetime.strptime(report, "report-%Y.%m.%d.html")
     return log_datetime == report_datetime
