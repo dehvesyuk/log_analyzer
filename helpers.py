@@ -6,6 +6,7 @@ from typing import Optional
 from collections import namedtuple
 
 LOG_FILENAME_TEMPLATE = "nginx-access-ui.log"
+REPORT_TEMPLATE = "report_template.html"
 REPORT_FILENAME_TEMPLATE = "report-"
 REQUEST_TIME_PATTERN = "\d.\d{3}$"
 REQUEST_URL_PATTERN = "\s/\S+\s"
@@ -33,12 +34,20 @@ def get_last_report_filename(report_dir: str) -> Optional[str]:
     return report_list[0] if report_list else None
 
 
-def is_log_and_report_date_equal(log: str, report: str) -> bool:
+def is_log_and_report_date_equal(log: str, report: Optional[str]) -> bool:
     if not report:
         return False
-    log_datetime = datetime.strptime(log.split('.')[1], "log-%Y%m%d")
-    report_datetime = datetime.strptime(report, "report-%Y.%m.%d.html")
+    log_datetime = get_log_dt(log)
+    report_datetime = get_report_dt(report)
     return log_datetime == report_datetime
+
+
+def get_log_dt(log: str) -> datetime:
+    return datetime.strptime(log.split('.')[1], "log-%Y%m%d")
+
+
+def get_report_dt(report: str) -> datetime:
+    return datetime.strptime(report, "report-%Y.%m.%d.html")
 
 
 def get_url_and_time_from_log(line: str) -> tuple:
