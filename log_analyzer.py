@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 from statistics import median
 from string import Template
 import json
+from operator import attrgetter
 
 
 from helpers import (
@@ -37,15 +38,15 @@ def prepare_data(data: Dict, total: int) -> List[Dict]:
         report = {
             "url": r[0],
             "count": req_count,
-            "count_perc": req_count/total,
-            "time_avg": average(time_lst),
+            "count_perc": round(req_count/total, 3),
+            "time_avg": round(average(time_lst), 3),
             "time_max": max(time_lst),
-            "time_med": median(time_lst),
-            "time_perc": time_sum/total_req_time,
-            "time_sum": time_sum
+            "time_med": round(median(time_lst), 3),
+            "time_perc": round(time_sum/total_req_time, 3),
+            "time_sum": round(time_sum, 3)
         }
         full_report.append(report)
-    return full_report
+    return sorted(full_report, key=lambda x: x["time_sum"], reverse=True)[:config["REPORT_SIZE"]]
 
 
 def average(time_lst: List) -> float:
