@@ -2,8 +2,8 @@ import gzip
 import os
 import re
 from datetime import datetime
+from typing import Dict, List
 from typing import Optional
-from collections import namedtuple
 
 LOG_FILENAME_TEMPLATE = "nginx-access-ui.log"
 REPORT_TEMPLATE = "report_template.html"
@@ -60,3 +60,12 @@ def get_url_and_time_from_log(line: str) -> tuple:
         print(line, "Ошибка данных")
         url, time = None, None
     return url, time
+
+
+def average(time_lst: List) -> float:
+    return sum(time_lst) / len(time_lst)
+
+
+def count_total_req_time(data: Dict) -> float:
+    time_sum = sum([sum(r[1]["time"]) for r in data.items()])
+    return round(time_sum, 3)

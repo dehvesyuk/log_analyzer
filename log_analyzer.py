@@ -1,21 +1,11 @@
+import json
 import os.path
-import datetime
-from typing import Dict, List, Tuple
 from statistics import median
 from string import Template
-import json
-from operator import attrgetter
+from typing import Tuple
 
+from helpers import *
 
-from helpers import (
-    get_last_log_filename, get_last_report_filename, get_log_dt,
-    is_log_and_report_date_equal, log_reader, get_url_and_time_from_log, REPORT_TEMPLATE, REPORT_FILENAME_TEMPLATE
-)
-
-# log_format ui_short '$remote_addr  $remote_user $http_x_real_ip [$time_local] "$request" '
-#                     '$status $body_bytes_sent "$http_referer" '
-#                     '"$http_user_agent" "$http_x_forwarded_for" "$http_X_REQUEST_ID" "$http_X_RB_USER" '  
-#                     '$request_time';
 URL_TEMPLATE = '\[([^\]]+)\]'
 TIME_TEMPLATE = '"([^"]+)"'
 
@@ -23,12 +13,39 @@ TIME_TEMPLATE = '"([^"]+)"'
 config = {
     "REPORT_SIZE": 1000,
     "REPORT_DIR": "./reports",
-    "LOG_DIR": "./log"
+    "LOG_DIR": "./log",
+    "ERRORS_MAX_PERC": 10
 }
 
 
+def main():
+    try:
+        report_dir = config["REPORT_DIR"]
+        log_dir = config["LOG_DIR"]
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir)
+
+        last_log = get_last_log_filename(log_dir)
+        log_dt = get_log_dt(last_log)
+        last_report = get_last_report_filename(report_dir)
+        if is_log_and_report_date_equal(last_log, last_report):
+            return
+
+        full_path = f"{log_dir}/{last_log}"
+        data, total, total_errors = parse_log(full_path)
+        print('процент ошибок: ', round(total_errors/total*100, 2), '%')
+        if total_errors/total*100 > config["ERRORS_MAX_PERC"]:
+            # TODO add log (превышено допустимое число ошибок при парсинге, выполнение прервано)
+            return
+        report_data = prepare_data(data, total)
+        report = render_report(report_data)
+        save_report(report, log_dt, report_dir)
+    except Exception as e:
+        # TODO add log (неожиданная ошибка, выполнение прервано)
+        pass
+
+
 def prepare_data(data: Dict, total: int) -> List[Dict]:
-    # TODO round all float params, add sort
     full_report = []
     total_req_time = count_total_req_time(data)
     for r in data.items():
@@ -49,21 +66,15 @@ def prepare_data(data: Dict, total: int) -> List[Dict]:
     return sorted(full_report, key=lambda x: x["time_sum"], reverse=True)[:config["REPORT_SIZE"]]
 
 
-def average(time_lst: List) -> float:
-    return sum(time_lst) / len(time_lst)
-
-
-def count_total_req_time(data: Dict) -> float:
-    time_sum = sum([sum(r[1]["time"]) for r in data.items()])
-    return round(time_sum, 3)
-
-
-def parse_log(path: str) -> Tuple:
+def parse_log(path: str) -> Tuple[Dict, int, int]:
     data = {}
     total = 0
+    total_errors = 0
     for line in log_reader(path):
         total += 1
         url, time = get_url_and_time_from_log(line)
+        if not all((url, time)):
+            total_errors += 1
         if url and time:
             if url in data.keys():
                 data[url]["time"].append(time)
@@ -72,7 +83,7 @@ def parse_log(path: str) -> Tuple:
                 data[url] = {}
                 data[url]["count"] = 1
                 data[url]["time"] = [time]
-    return data, total
+    return data, total, total_errors
 
 
 def render_report(data: List[Dict]) -> str:
@@ -88,25 +99,6 @@ def save_report(final_output: str, report_dt: datetime, report_dir: str):
     report_filename = f"{report_dir}/{REPORT_FILENAME_TEMPLATE}{dt_str}.html"
     with open(report_filename, "w") as output:
         output.write(final_output)
-
-
-def main():
-    report_dir = config["REPORT_DIR"]
-    log_dir = config["LOG_DIR"]
-    if not os.path.exists(report_dir):
-        os.makedirs(report_dir)
-
-    last_log = get_last_log_filename(log_dir)
-    log_dt = get_log_dt(last_log)
-    last_report = get_last_report_filename(report_dir)
-    if is_log_and_report_date_equal(last_log, last_report):
-        return
-
-    full_path = f"{log_dir}/{last_log}"
-    data, total = parse_log(full_path)
-    report_data = prepare_data(data, total)
-    report = render_report(report_data)
-    save_report(report, log_dt, report_dir)
 
 
 if __name__ == "__main__":
