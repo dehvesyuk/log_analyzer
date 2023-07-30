@@ -57,7 +57,6 @@ def get_url_and_time_from_log(line: str) -> tuple:
         time = float(time_tmp.group())
         url = (url_tmp.group()).strip()
     else:
-        print(line, "Ошибка данных")
         url, time = None, None
     return url, time
 

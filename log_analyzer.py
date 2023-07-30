@@ -1,4 +1,7 @@
+import argparse
+import configparser
 import json
+import logging
 import os.path
 from statistics import median
 from string import Template
@@ -6,46 +9,65 @@ from typing import Tuple
 
 from helpers import *
 
-URL_TEMPLATE = '\[([^\]]+)\]'
-TIME_TEMPLATE = '"([^"]+)"'
+file_config = configparser.ConfigParser()
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--config")
+args = parser.parse_args()
+
+URL_TEMPLATE = "\[([^\]]+)\]"
+TIME_TEMPLATE = '"([^"]+)"'
+DEFAULT_REPORT_BATCH_SIZE = 1000
+DEFAULT_ERRORS_MAX_PERC = 10
 
 config = {
-    "REPORT_SIZE": 1000,
-    "REPORT_DIR": "./reports",
-    "LOG_DIR": "./log",
-    "ERRORS_MAX_PERC": 10
+    "report_size": DEFAULT_REPORT_BATCH_SIZE,
+    "report_dir": "./reports",
+    "log_dir": "./log",
+    # "app_log_filename": "./app_log/log.log",
+    "errors_max_perc": DEFAULT_ERRORS_MAX_PERC
 }
 
-
-def main():
-    try:
-        report_dir = config["REPORT_DIR"]
-        log_dir = config["LOG_DIR"]
-        if not os.path.exists(report_dir):
-            os.makedirs(report_dir)
-
-        last_log = get_last_log_filename(log_dir)
-        log_dt = get_log_dt(last_log)
-        last_report = get_last_report_filename(report_dir)
-        if is_log_and_report_date_equal(last_log, last_report):
-            return
-
-        full_path = f"{log_dir}/{last_log}"
-        data, total, total_errors = parse_log(full_path)
-        print('процент ошибок: ', round(total_errors/total*100, 2), '%')
-        if total_errors/total*100 > config["ERRORS_MAX_PERC"]:
-            # TODO add log (превышено допустимое число ошибок при парсинге, выполнение прервано)
-            return
-        report_data = prepare_data(data, total)
-        report = render_report(report_data)
-        save_report(report, log_dt, report_dir)
-    except Exception as e:
-        # TODO add log (неожиданная ошибка, выполнение прервано)
-        pass
+logging.basicConfig(level=logging.INFO, filename=config.get("app_log_filename"), filemode="w",
+                    format="[%(asctime)s] %(levelname).1s %(message)s", datefmt="'%Y.%m.%d% H:%M:%S")
+# не нашел способа, как выбрать filename для logging ДО считывания конфига из файла (писать логи в файл или stdout)
+# т.к. если обрабатывать конфиг при объявлении переменных то мы не сможем логировать ошибки парсинга конфига
+# (а это требование из ТЗ)
 
 
-def prepare_data(data: Dict, total: int) -> List[Dict]:
+def main(cfg: Dict):
+    report_dir = cfg.get("report_dir")
+    log_dir = cfg.get("log_dir")
+    app_log_filename = cfg.get("app_log_filename")
+    if not os.path.exists(report_dir):
+        os.makedirs(report_dir)
+
+    if app_log_filename:
+        app_log_path = app_log_filename.rpartition('/')[0]
+        if not os.path.exists(app_log_path):
+            os.makedirs(app_log_path)
+
+    last_log = get_last_log_filename(log_dir)
+    log_dt = get_log_dt(last_log)
+    last_report = get_last_report_filename(report_dir)
+    if is_log_and_report_date_equal(last_log, last_report):
+        logging.info(f"Файл с отчетом для даты {str(log_dt.date())} уже создан")
+        return
+
+    full_path = f"{log_dir}/{last_log}"
+    data, total, total_errors = parse_log(full_path)
+
+    logging.info(f"Процент ошибок: {str(round(total_errors/total*100, 2))}%")
+    if total_errors/total*100 > cfg.get("errors_max_perc", DEFAULT_ERRORS_MAX_PERC):
+        logging.error("Превышено допустимое число ошибок при парсинге, выполнение прервано")
+        return
+    report_data = prepare_data(data, total, cfg)
+    report = render_report(report_data)
+    save_report(report, log_dt, report_dir)
+    logging.info("Файл с отчетом создан")
+
+
+def prepare_data(data: Dict, total: int, cfg: Dict) -> List[Dict]:
     full_report = []
     total_req_time = count_total_req_time(data)
     for r in data.items():
@@ -63,7 +85,9 @@ def prepare_data(data: Dict, total: int) -> List[Dict]:
             "time_sum": round(time_sum, 3)
         }
         full_report.append(report)
-    return sorted(full_report, key=lambda x: x["time_sum"], reverse=True)[:config["REPORT_SIZE"]]
+    return sorted(full_report,
+                  key=lambda x: x["time_sum"],
+                  reverse=True)[:cfg.get("report_size", DEFAULT_REPORT_BATCH_SIZE)]
 
 
 def parse_log(path: str) -> Tuple[Dict, int, int]:
@@ -102,4 +126,13 @@ def save_report(final_output: str, report_dt: datetime, report_dir: str):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        if not args.config:
+            logging.error("Файл конфига не существует")
+            raise Exception
+
+        file_config.read(args.config)
+        config.update(file_config.defaults())
+        main(config)
+    except Exception:
+        logging.exception("Неожиданная ошибка, выполнение прервано")
