@@ -2,17 +2,12 @@ import argparse
 import configparser
 import json
 import os.path
+from copy import deepcopy
 from statistics import median
 from string import Template
 from typing import Tuple
 
 from helpers import *
-
-file_config = configparser.ConfigParser()
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--config")
-args = parser.parse_args()
 
 URL_TEMPLATE = "\[([^\]]+)\]"
 TIME_TEMPLATE = '"([^"]+)"'
@@ -60,6 +55,7 @@ def main(cfg: Dict):
     if total_errors/total*100 > cfg.get("errors_max_perc", DEFAULT_ERRORS_MAX_PERC):
         logging.error("Превышено допустимое число ошибок при парсинге, выполнение прервано")
         return
+
     report_data = prepare_data(data, total, cfg)
     report = render_report(report_data)
     save_report(report, log_dt, report_dir)
@@ -124,17 +120,35 @@ def save_report(final_output: str, report_dt: datetime, report_dir: str):
         output.write(final_output)
 
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config")
+    return parser.parse_args()
+
+
+def get_config(local: Dict, file: Optional[Dict]) -> Dict:
+    actual_config = deepcopy(local)
+    if file:
+        actual_config.update(**file)
+    return actual_config
+
+
+def parse_config(args) -> Optional[Dict]:
+    file_config = configparser.ConfigParser()
+    if args.config:
+        try:
+            file_config.read(args.config)
+            file_config = dict(file_config.defaults())
+            file_config["report_size"] = int(file_config["report_size"])
+            file_config["errors_max_perc"] = int(file_config["errors_max_perc"])
+            return file_config
+        except KeyError:
+            logging.error("Файл конфигурации не существует либо его не удалось спарсить.")
+
+
 if __name__ == "__main__":
     try:
-        if not args.config:
-            logging.error("Файл конфига не существует")
-            raise Exception
-
-        file_config.read(args.config)
-        new_config = dict(file_config.defaults())
-        new_config["report_size"] = int(new_config["report_size"])
-        new_config["errors_max_perc"] = int(new_config["errors_max_perc"])
-        config.update(new_config)
+        config = get_config(local=config, file=parse_config(get_args()))
         main(config)
     except Exception:
         logging.exception("Неожиданная ошибка, выполнение прервано")
