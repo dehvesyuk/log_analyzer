@@ -1,4 +1,5 @@
 import gzip
+import logging
 import os
 import re
 from datetime import datetime
@@ -13,11 +14,14 @@ REQUEST_URL_PATTERN = "\s/\S+\s"
 
 
 def log_reader(filename: str):
-    name, ext = os.path.splitext(filename)
-    open_method = gzip.open if ext == ".gz" else open
-    with open_method(filename, "rb") as f:
-        for line in f:
-            yield line.decode("utf-8")
+    try:
+        name, ext = os.path.splitext(filename)
+        open_method = gzip.open if ext == ".gz" else open
+        with open_method(filename, "rb") as f:
+            for line in f:
+                yield line.decode("utf-8")
+    except Exception:
+        logging.exception(f"Ошибка чтения файла")
 
 
 def get_last_log_filename(log_dir: str) -> str:
@@ -62,7 +66,9 @@ def get_url_and_time_from_log(line: str) -> tuple:
 
 
 def average(time_lst: List) -> float:
-    return sum(time_lst) / len(time_lst)
+    if len(time_lst) != 0:
+        return sum(time_lst) / len(time_lst)
+    return 0.0
 
 
 def count_total_req_time(data: Dict) -> float:

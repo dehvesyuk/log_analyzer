@@ -1,7 +1,6 @@
 import argparse
 import configparser
 import json
-import logging
 import os.path
 from statistics import median
 from string import Template
@@ -56,7 +55,7 @@ def main(cfg: Dict):
 
     full_path = f"{log_dir}/{last_log}"
     data, total, total_errors = parse_log(full_path)
-
+    logging.info(f"current config: {cfg}")
     logging.info(f"Процент ошибок: {str(round(total_errors/total*100, 2))}%")
     if total_errors/total*100 > cfg.get("errors_max_perc", DEFAULT_ERRORS_MAX_PERC):
         logging.error("Превышено допустимое число ошибок при парсинге, выполнение прервано")
@@ -132,7 +131,10 @@ if __name__ == "__main__":
             raise Exception
 
         file_config.read(args.config)
-        config.update(file_config.defaults())
+        new_config = dict(file_config.defaults())
+        new_config["report_size"] = int(new_config["report_size"])
+        new_config["errors_max_perc"] = int(new_config["errors_max_perc"])
+        config.update(new_config)
         main(config)
     except Exception:
         logging.exception("Неожиданная ошибка, выполнение прервано")
