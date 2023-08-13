@@ -6,7 +6,7 @@ readme = "README.md"
 authors = ["hvesyukdmitry <hvesyukdmitry@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "3.9"
+python = "^3.9"
 pytest = "7.4.0"
 flake8 = "6.1.0"
 
