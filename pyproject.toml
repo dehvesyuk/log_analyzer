@@ -11,4 +11,4 @@ pytest = "7.4.0"
 flake8 = "6.1.0"
 
 [tool.flakehell]
-exclude = [".venv"]
+exclude = [".venv", ".app/tests"]
