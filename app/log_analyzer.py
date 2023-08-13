@@ -8,7 +8,6 @@ from datetime import datetime
 from statistics import median
 from string import Template
 from typing import Dict, List, Optional
-from typing import Dict, List, Optional
 from typing import Tuple
 
 from helpers import (
