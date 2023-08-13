@@ -69,10 +69,10 @@ def test_config(local, file, expected_config):
 def test_create_report():
     report_name = 'report-2018.06.30.html'
     log_name = 'nginx-access-ui.log-20180630.gz'
-    if "log" not in os.listdir():
-        os.mkdir("log")
+    if "log" not in os.listdir("app"):
+        os.mkdir("app/log")
 
-    with gzip.open(f"log/{log_name}", "wb") as f:
+    with gzip.open(f"app/log/{log_name}", "wb") as f:
         f.write(LOG_DATA)
 
     cfg = get_config(

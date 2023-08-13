@@ -23,8 +23,8 @@ DEFAULT_ERR_MAX_PERC = 10
 
 config = {
     "report_size": DEFAULT_REPORT_BATCH_SIZE,
-    "report_dir": "/app/reports",
-    "log_dir": "/app/log",
+    "report_dir": "./app/reports",
+    "log_dir": "./app/log",
     # "app_log_filename": "./app_log/log.log",
     "error_max_perc": DEFAULT_ERR_MAX_PERC
 }
