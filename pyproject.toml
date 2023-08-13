@@ -9,6 +9,3 @@ authors = ["hvesyukdmitry <hvesyukdmitry@gmail.com>"]
 python = "^3.9"
 pytest = "7.4.0"
 flake8 = "6.1.0"
-
-[tool.flakehell]
-exclude = [".venv", ".app/tests"]
