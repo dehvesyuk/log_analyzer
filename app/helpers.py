@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 LOG_FILENAME_TEMPLATE = "nginx-access-ui.log"
-REPORT_TEMPLATE = "report_template.html"
+REPORT_TEMPLATE = "app/report_template.html"
 REPORT_FILENAME_TEMPLATE = "report-"
 REQUEST_TIME_PATTERN = "\d.\d{3}$"  # noqa: W605
 REQUEST_URL_PATTERN = "\s/\S+\s"  # noqa: W605
