@@ -24,6 +24,7 @@ def log_reader(filename: str):
 
 
 def get_last_log_filename(log_dir: str) -> str:
+    print(os.listdir())
     dir_files = os.listdir(log_dir)
     log_list = [x for x in dir_files if LOG_FILENAME_TEMPLATE in x]
     log_list.sort(reverse=True, key=lambda x: x.split('.')[1])
