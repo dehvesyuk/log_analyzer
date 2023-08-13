@@ -1,31 +1,44 @@
 import argparse
 import configparser
 import json
+import logging
 import os.path
 from copy import deepcopy
+from datetime import datetime
 from statistics import median
 from string import Template
+from typing import Dict, List, Optional
 from typing import Tuple
 
-from helpers import *
+from helpers import (
+    average, log_reader, get_log_dt, get_last_log_filename,
+    get_last_report_filename, get_url_and_time_from_log, count_total_req_time,
+    is_log_and_report_date_equal, REPORT_FILENAME_TEMPLATE, REPORT_TEMPLATE
+)
 
-URL_TEMPLATE = "\[([^\]]+)\]"
+URL_TEMPLATE = "\[([^\]]+)\]"  # noqa: W605
 TIME_TEMPLATE = '"([^"]+)"'
 DEFAULT_REPORT_BATCH_SIZE = 1000
-DEFAULT_ERRORS_MAX_PERC = 10
+DEFAULT_ERR_MAX_PERC = 10
 
 config = {
     "report_size": DEFAULT_REPORT_BATCH_SIZE,
     "report_dir": "./reports",
     "log_dir": "./log",
     # "app_log_filename": "./app_log/log.log",
-    "errors_max_perc": DEFAULT_ERRORS_MAX_PERC
+    "error_max_perc": DEFAULT_ERR_MAX_PERC
 }
 
-logging.basicConfig(level=logging.INFO, filename=config.get("app_log_filename"), filemode="w",
-                    format="[%(asctime)s] %(levelname).1s %(message)s", datefmt="'%Y.%m.%d% H:%M:%S")
-# не нашел способа, как выбрать filename для logging ДО считывания конфига из файла (писать логи в файл или stdout)
-# т.к. если обрабатывать конфиг при объявлении переменных то мы не сможем логировать ошибки парсинга конфига
+logging.basicConfig(
+    level=logging.INFO,
+    filename=config.get("app_log_filename"),
+    filemode="w",
+    format="[%(asctime)s] %(levelname).1s %(message)s",
+    datefmt="'%Y.%m.%d% H:%M:%S"
+)
+# не нашел способа, как выбрать filename для logging ДО считывания конфига из
+# файла (писать логи в файл или stdout) т.к. если обрабатывать конфиг при
+# объявлении переменных то мы не сможем логировать ошибки парсинга конфига
 # (а это требование из ТЗ)
 
 
@@ -45,15 +58,19 @@ def main(cfg: Dict):
     log_dt = get_log_dt(last_log)
     last_report = get_last_report_filename(report_dir)
     if is_log_and_report_date_equal(last_log, last_report):
-        logging.info(f"Файл с отчетом для даты {str(log_dt.date())} уже создан")
+        logging.info(
+            f"Файл с отчетом для даты {str(log_dt.date())} уже создан")
         return
 
     full_path = f"{log_dir}/{last_log}"
-    data, total, total_errors = parse_log(full_path)
+    data, total, total_error = parse_log(full_path)
     logging.info(f"current config: {cfg}")
-    logging.info(f"Процент ошибок: {str(round(total_errors/total*100, 2))}%")
-    if total_errors/total*100 > cfg.get("errors_max_perc", DEFAULT_ERRORS_MAX_PERC):
-        logging.error("Превышено допустимое число ошибок при парсинге, выполнение прервано")
+    logging.info(f"Процент ошибок: {str(round(total_error/total*100, 2))}%")
+    if total_error/total*100 > cfg.get("error_max_perc", DEFAULT_ERR_MAX_PERC):
+        logging.error(
+            "Превышено допустимое число ошибок при парсинге, "
+            "выполнение прервано"
+        )
         return
 
     report_data = prepare_data(data, total, cfg)
@@ -80,9 +97,11 @@ def prepare_data(data: Dict, total: int, cfg: Dict) -> List[Dict]:
             "time_sum": round(time_sum, 3)
         }
         full_report.append(report)
-    return sorted(full_report,
-                  key=lambda x: x["time_sum"],
-                  reverse=True)[:cfg.get("report_size", DEFAULT_REPORT_BATCH_SIZE)]
+    return sorted(
+        full_report,
+        key=lambda x: x["time_sum"],
+        reverse=True
+    )[:cfg.get("report_size", DEFAULT_REPORT_BATCH_SIZE)]
 
 
 def parse_log(path: str) -> Tuple[Dict, int, int]:
@@ -140,10 +159,12 @@ def parse_config(args) -> Optional[Dict]:
             file_config.read(args.config)
             file_config = dict(file_config.defaults())
             file_config["report_size"] = int(file_config["report_size"])
-            file_config["errors_max_perc"] = int(file_config["errors_max_perc"])
+            file_config["error_max_perc"] = int(file_config["error_max_perc"])
             return file_config
         except KeyError:
-            logging.error("Файл конфигурации не существует либо его не удалось спарсить.")
+            logging.error(
+                "Файл конфигурации не существует либо его не удалось спарсить."
+            )
 
 
 if __name__ == "__main__":

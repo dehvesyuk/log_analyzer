@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "Otus homework"
+description = "repository for otus homeworks"
+version = "1.0.0"
+readme = "README.md"
+authors = ["hvesyukdmitry <hvesyukdmitry@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.9.6"
+pytest = "7.4.0"
+flake8 = "6.1.0"
+
+[tool.flakehell]
+exclude = [".venv"]
+max_line_length = 88

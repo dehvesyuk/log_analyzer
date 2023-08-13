@@ -3,14 +3,13 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, List
-from typing import Optional
+from typing import Dict, List, Optional
 
 LOG_FILENAME_TEMPLATE = "nginx-access-ui.log"
 REPORT_TEMPLATE = "report_template.html"
 REPORT_FILENAME_TEMPLATE = "report-"
-REQUEST_TIME_PATTERN = "\d.\d{3}$"
-REQUEST_URL_PATTERN = "\s/\S+\s"
+REQUEST_TIME_PATTERN = "\d.\d{3}$"  # noqa: W605
+REQUEST_URL_PATTERN = "\s/\S+\s"  # noqa: W605
 
 
 def log_reader(filename: str):
@@ -21,7 +20,7 @@ def log_reader(filename: str):
             for line in f:
                 yield line.decode("utf-8")
     except Exception:
-        logging.exception(f"Ошибка чтения файла")
+        logging.exception("Ошибка чтения файла")
 
 
 def get_last_log_filename(log_dir: str) -> str:

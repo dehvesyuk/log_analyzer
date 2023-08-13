@@ -1,7 +1,7 @@
-import os
 import pytest
+
 from helpers import is_log_and_report_date_equal
-from log_analyzer import get_config, main
+from log_analyzer import get_config
 
 """
 1. Нет файла лога (не ошибка)
