@@ -29,7 +29,8 @@ def test_config(local, file, expected_config):
 
 def test_create_report():
     report_name = 'report-2017.06.30.html'
-    cfg = get_config(local=config, file=parse_config(argparse.Namespace(config=None)))
+    cfg = get_config(
+        local=config, file=parse_config(argparse.Namespace(config=None)))
     main(cfg)
 
     assert os.path.exists(os.path.join(config["report_dir"], report_name))
